@@ -11,7 +11,8 @@ import gevent
 from modules.PluginInterface import AceProxyPlugin
 from modules.PlaylistGenerator import PlaylistGenerator
 import config.ttv as config
-
+import urllib
+import urlparse
 
 class Ttv(AceProxyPlugin):
 
@@ -87,18 +88,31 @@ class Ttv(AceProxyPlugin):
         g_name = ''
         try:
             if connection.splittedpath[2].lower()[:1] == 'g':
-                Ttv.logger.debug('Group ' + connection.splittedpath[2].lower() + ' - ' + connection.splittedpath[2].lower()[1:2])
-                Ttv.logger.debug(Ttv.CATEGORIES['1'])
+                #Ttv.logger.debug('Group ' + connection.splittedpath[2].lower() + ' - ' + connection.splittedpath[2].lower()[1:2])
+                #Ttv.logger.debug(Ttv.CATEGORIES['1'])
                 g_name = Ttv.CATEGORIES[connection.splittedpath[2].lower()[1:2]]
                 g_filter = True
-                Ttv.logger.debug('Group name ' + g_name)
+                #Ttv.logger.debug('Group name ' + g_name)
         except:
             pass
-
+        
+        mg_filter = False;
+        mg_list = []
+        try:
+            Ttv.logger.debug('Groups path ' + connection.path)
+            query = urlparse.urlparse(urllib2.unquote(connection.path).decode('utf8')).query
+            Ttv.logger.debug('Groups query ' + query)
+            mg_list =  urlparse.parse_qs(query)['g']
+            Ttv.logger.debug('Groups list0 ' + mg_list[0])
+            mg_filter = True
+        except:
+            pass
+        
         playlistgen = PlaylistGenerator()
         for match in matches:
             itemdict = match.groupdict()
-            if not(g_filter) or g_name == itemdict['group']:
+            gr = itemdict['group'].decode('utf8')
+            if not(g_filter or mg_filter) or (g_filter and (g_name == itemdict['group'])) or (mg_filter and (gr in mg_list)):
                 name = itemdict.get('name').decode('UTF-8')
                 logo = config.logomap.get(name)
                 if logo is not None:
